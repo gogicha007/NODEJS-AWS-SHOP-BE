@@ -1,0 +1,77 @@
+openapi: 3.0.0
+info:
+  title: Product Service API
+  version: 1.0.0
+  description: API for managing products
+
+paths:
+  /products:
+    get:
+      summary: Get products list
+      operationId: getProductsList
+      responses:
+        '200':
+          description: List of all products
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Product'
+
+  /products/{productId}:
+    get:
+      summary: Get product by ID
+      operationId: getProductById
+      parameters:
+        - name: productId
+          in: path
+          required: true
+          schema:
+            type: string
+          description: The ID of the product
+      responses:
+        '200':
+          description: A single product
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Product'
+        '404':
+          description: Product not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+components:
+  schemas:
+    Product:
+      type: object
+      properties:
+        id:
+          type: string
+          example: 7567ec4b-b10c-48c5-9345-fc73c48a80aa
+        title:
+          type: string
+          example: ProductOne
+        description:
+          type: string
+          example: Short Product Description1
+        price:
+          type: number
+          example: 24
+      required:
+        - id
+        - title
+        - description
+        - price
+
+    ErrorResponse:
+      type: object
+      properties:
+        message:
+          type: string
+          example: Product not found
+      required:
+        - message
