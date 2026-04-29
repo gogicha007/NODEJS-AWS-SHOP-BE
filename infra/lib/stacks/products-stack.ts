@@ -1,23 +1,23 @@
-import * as path from "node:path";
 import * as cdk from "aws-cdk-lib";
+import { Construct } from "constructs";
 import { HttpApi, HttpMethod } from "aws-cdk-lib/aws-apigatewayv2";
 import { HttpLambdaIntegration } from "aws-cdk-lib/aws-apigatewayv2-integrations";
 import * as lambda from "aws-cdk-lib/aws-lambda";
 import { NodejsFunction } from "aws-cdk-lib/aws-lambda-nodejs";
-import { Construct } from "constructs";
+import * as path from "node:path";
 
 export class ProductsStack extends cdk.Stack {
     constructor(scope: Construct, id: string, props?: cdk.StackProps) {
         super(scope, id, props);
 
         const getProductsListLambda = new NodejsFunction(this, "GetProductsListLambda", {
-            runtime: lambda.Runtime.NODEJS_22_X,
+            runtime: lambda.Runtime.NODEJS_LATEST,
             handler: "handler",
             entry: path.join(__dirname, "../../lambdas/get-products-list.ts"),
         });
 
         const getProductsByIdLambda = new NodejsFunction(this, "GetProductByIdLambda", {
-            runtime: lambda.Runtime.NODEJS_22_X,
+            runtime: lambda.Runtime.NODEJS_LATEST,
             handler: "handler",
             entry: path.join(__dirname, "../../lambdas/get-products-by-id.ts"),
         });
