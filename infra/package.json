@@ -9,7 +9,7 @@
     "watch": "tsc -w",
     "test": "jest",
     "cdk": "cdk",
-    "deploy": "cdk -- deploy ProductsStack --require-approval never",
+    "deploy": "cdk deploy ProductsStack --require-approval never",
     "deploy:vlab": "npm run deploy -- --profile vlab_dev"
   },
   "devDependencies": {
