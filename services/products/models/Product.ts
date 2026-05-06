@@ -9,3 +9,7 @@ export type Stock = {
   product_id: string;
   count: number;
 };
+
+export type ProductWithStock = Product & {
+  count: number;
+};
