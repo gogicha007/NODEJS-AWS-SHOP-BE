@@ -3,9 +3,16 @@ import {
   BatchWriteCommand,
   DynamoDBDocumentClient,
 } from "@aws-sdk/lib-dynamodb";
-import { chunkArray } from "@aws-doc-sdk-examples/lib/utils/util-array.js";
 import { stocks } from "../../services/products/products-data";
 import { Stock } from "../../services/products/models/Product";
+
+const chunkArray = <T>(items: T[], size: number): T[][] => {
+  const chunks: T[][] = [];
+  for (let i = 0; i < items.length; i += size) {
+    chunks.push(items.slice(i, i + size));
+  }
+  return chunks;
+};
 
 const client = new DynamoDBClient({});
 const docClient = DynamoDBDocumentClient.from(client);

@@ -1,40 +1,41 @@
 import { DynamoDBClient } from "@aws-sdk/client-dynamodb";
 import {
   BatchWriteCommand,
-  BatchWriteCommandInput,
   DynamoDBDocumentClient,
 } from "@aws-sdk/lib-dynamodb";
 import { products } from "../../services/products/products-data";
+import { Product } from "../../services/products/models/Product";
+
+const chunkArray = <T>(items: T[], size: number): T[][] => {
+  const chunks: T[][] = [];
+  for (let i = 0; i < items.length; i += size) {
+    chunks.push(items.slice(i, i + size));
+  }
+  return chunks;
+};
 
 const client = new DynamoDBClient({});
 const docClient = DynamoDBDocumentClient.from(client);
 const TABLE_NAME = "products";
-const DDB_BATCH_LIMIT = 25;
 
 export const main = async () => {
-  const chunks: (typeof products)[] = [];
+  const productChunks = chunkArray(products, 25);
 
-  for (let i = 0; i < products.length; i += DDB_BATCH_LIMIT) {
-    chunks.push(products.slice(i, i + DDB_BATCH_LIMIT));
-  }
-
-  for (const [index, chunk] of chunks.entries()) {
-    const input: BatchWriteCommandInput = {
-      RequestItems: {
-        [TABLE_NAME]: chunk.map((product) => ({
-          PutRequest: {
-            Item: product,
-          },
-        })),
+  for (const chunk of productChunks) {
+    const putRequest = chunk.map((stock: Product) => ({
+      PutRequest: {
+        Item: stock,
       },
-    };
+    }));
 
-    const response = await docClient.send(new BatchWriteCommand(input));
-    const unprocessed = response.UnprocessedItems?.[TABLE_NAME]?.length ?? 0;
+    const command = new BatchWriteCommand({
+      RequestItems: {
+        [TABLE_NAME]: putRequest,
+      },
+    });
 
-    console.log(
-      `Batch ${index + 1}/${chunks.length} written to ${TABLE_NAME}. Unprocessed: ${unprocessed}`,
-    );
+    await docClient.send(command);
+
   }
 };
 
