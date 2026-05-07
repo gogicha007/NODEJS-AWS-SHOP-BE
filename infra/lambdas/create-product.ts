@@ -21,7 +21,7 @@ export const handler = async (event: Event) => {
     try {
         const productsTableName = process.env.PRODUCTS_TABLE_NAME;
         const stocksTableName = process.env.STOCKS_TABLE_NAME;
-        
+
         console.log("create-product request", {
             event,
             body: event?.body,
