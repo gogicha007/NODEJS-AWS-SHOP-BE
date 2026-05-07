@@ -82,6 +82,7 @@ export const handler = async (event: Event) => {
                     {
                         Put: {
                             TableName: productsTableName,
+                            ConditionExpression: "attribute_not_exists(id)",
                             Item: {
                                 id,
                                 title,
@@ -93,6 +94,7 @@ export const handler = async (event: Event) => {
                     {
                         Put: {
                             TableName: stocksTableName,
+                            ConditionExpression: "attribute_not_exists(product_id)",
                             Item: {
                                 product_id: id,
                                 count,
