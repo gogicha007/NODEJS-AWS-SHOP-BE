@@ -42,11 +42,22 @@ export const getProductsList = async (productsTableName: string, stocksTableName
 	};
 }
 
-export const handler = async () => {
+type Event = {
+    pathParameters?: Record<string, string | undefined>;
+    queryStringParameters?: Record<string, string | undefined>;
+};
+
+export const handler = async (event: Event) => {
 	try {
 		const productsTableName = process.env.PRODUCTS_TABLE_NAME;
 		const stocksTableName = process.env.STOCKS_TABLE_NAME;
 
+		console.log("get-products-list request", {
+			event,
+			pathParameters: event?.pathParameters,
+			queryStringParameters: event?.queryStringParameters,
+		})
+		
 		if (!productsTableName || !stocksTableName) {
 			return {
 				statusCode: 500,

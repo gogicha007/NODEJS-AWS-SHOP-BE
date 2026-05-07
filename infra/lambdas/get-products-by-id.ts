@@ -40,7 +40,7 @@ export const getProductById = async (
   ]);
 
   const product = productResult.Item as Product | undefined;
-  
+
   if (!product) {
     return {
       statusCode: 404,
@@ -55,7 +55,7 @@ export const getProductById = async (
     statusCode: 200,
     headers,
     body: JSON.stringify({ ...product, count }),
-  }; 
+  };
 }
 
 export const handler = async (event: Event) => {
@@ -64,6 +64,11 @@ export const handler = async (event: Event) => {
     const productsTableName = process.env.PRODUCTS_TABLE_NAME;
     const stocksTableName = process.env.STOCKS_TABLE_NAME;
 
+    console.log("get-products-by-id request", {
+      event,
+      pathParameters: event?.pathParameters,
+    });
+    
     if (!productId || !productsTableName || !stocksTableName) {
       return {
         statusCode: 400,
