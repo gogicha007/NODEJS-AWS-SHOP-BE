@@ -34,10 +34,22 @@ export class ProductsStack extends cdk.Stack {
             },
         });
 
+        const createProductLambda = new NodejsFunction(this, "CreateProductLambda", {
+            runtime: lambda.Runtime.NODEJS_LATEST,
+            handler: "handler",
+            entry: path.join(__dirname, "../../lambdas/create-product.ts"),
+            environment: {
+                PRODUCTS_TABLE_NAME: productsTable.tableName,
+                STOCKS_TABLE_NAME: stocksTable.tableName
+            }
+        })
+
         productsTable.grantReadData(getProductsListLambda);
         stocksTable.grantReadData(getProductsListLambda);
         productsTable.grantReadData(getProductsByIdLambda);
         stocksTable.grantReadData(getProductsByIdLambda);
+        productsTable.grantWriteData(createProductLambda)
+        stocksTable.grantWriteData(createProductLambda)
 
         const api = new HttpApi(this, "ProductsApi", {
             apiName: "Products Service",
@@ -55,6 +67,12 @@ export class ProductsStack extends cdk.Stack {
             integration: new HttpLambdaIntegration("GetProductsByIdIntegration", getProductsByIdLambda),
         });
 
+        api.addRoutes({
+            path: "/products",
+            methods: [HttpMethod.POST],
+            integration: new HttpLambdaIntegration("CreateProductIntegration", createProductLambda),
+        });
+        
         new cdk.CfnOutput(this, "ProductsApiUrl", {
             value: api.url!,
         });

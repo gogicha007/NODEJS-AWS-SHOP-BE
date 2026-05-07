@@ -7,7 +7,7 @@
   "scripts": {
     "build": "tsc",
     "watch": "tsc -w",
-    "test": "jest",
+    "test": "node --experimental-vm-modules node_modules/jest/bin/jest.js",
     "cdk": "cdk",
     "deploy": "cdk deploy ProductsStack --require-approval never",
     "deploy:vlab": "npm run deploy -- --profile vlab_dev"
@@ -17,7 +17,7 @@
     "@types/node": "^24.12.2",
     "aws-cdk": "2.1119.0",
     "esbuild": "^0.28.0",
-    "jest": "^30",
+    "jest": "^30.3.0",
     "ts-jest": "^29",
     "ts-node": "^10.9.2",
     "typescript": "~5.9.3"
