@@ -8,9 +8,6 @@ const docClient = DynamoDBDocumentClient.from(client)
 
 const headers = {
     "Content-Type": "application/json",
-    "Access-Control-Allow-Origin": "https://d2htpstdr8w7tm.cloudfront.net",
-    "Access-Control-Allow-Headers": "Content-Type,Authorization",
-    "Access-Control-Allow-Methods": "POST,OPTIONS",
 };
 
 type Event = {
@@ -70,7 +67,7 @@ export const handler = async (event: Event) => {
             return {
                 statusCode: 400,
                 headers,
-                body: JSON.stringify({ message: "Invalid product payload" }),
+                body: JSON.stringify({ message: "Invalid product data" }),
             };
         }
 

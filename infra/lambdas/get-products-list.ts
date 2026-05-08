@@ -7,9 +7,6 @@ const docClient = DynamoDBDocumentClient.from(client);
 
 const headers = {
 	"Content-Type": "application/json",
-	"Access-Control-Allow-Origin": "https://d2htpstdr8w7tm.cloudfront.net",
-	"Access-Control-Allow-Headers": "Content-Type,Authorization",
-	"Access-Control-Allow-Methods": "GET,OPTIONS",
 };
 
 export const getProductsList = async (productsTableName: string, stocksTableName: string) => {
@@ -43,8 +40,8 @@ export const getProductsList = async (productsTableName: string, stocksTableName
 }
 
 type Event = {
-    pathParameters?: Record<string, string | undefined>;
-    queryStringParameters?: Record<string, string | undefined>;
+	pathParameters?: Record<string, string | undefined>;
+	queryStringParameters?: Record<string, string | undefined>;
 };
 
 export const handler = async (event: Event) => {
@@ -57,7 +54,7 @@ export const handler = async (event: Event) => {
 			pathParameters: event?.pathParameters,
 			queryStringParameters: event?.queryStringParameters,
 		})
-		
+
 		if (!productsTableName || !stocksTableName) {
 			return {
 				statusCode: 500,

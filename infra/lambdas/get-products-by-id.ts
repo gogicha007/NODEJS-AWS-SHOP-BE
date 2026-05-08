@@ -7,9 +7,6 @@ const docClient = DynamoDBDocumentClient.from(client);
 
 const headers = {
   "Content-Type": "application/json",
-  "Access-Control-Allow-Origin": "https://d2htpstdr8w7tm.cloudfront.net",
-  "Access-Control-Allow-Headers": "Content-Type,Authorization",
-  "Access-Control-Allow-Methods": "GET,OPTIONS",
 };
 
 type PathParameters = {

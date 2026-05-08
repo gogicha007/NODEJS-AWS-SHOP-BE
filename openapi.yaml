@@ -4,20 +4,59 @@ info:
   version: 1.0.0
   description: API for managing products
 
+servers:
+  - url: https://pggxwmuiii.execute-api.eu-north-1.amazonaws.com
+    description: aws api gateway
+
 paths:
   /products:
     get:
       summary: Get products list
       operationId: getProductsList
       responses:
-        '200':
+        "200":
           description: List of all products
           content:
             application/json:
               schema:
                 type: array
                 items:
-                  $ref: '#/components/schemas/Product'
+                  $ref: "#/components/schemas/Product"
+        "500":
+          description: Internal server error
+          content:
+            application/json:
+             schema:
+               $ref: "#/components/schemas/ErrorResponse"
+
+    post:
+      summary: Add a new product
+      operationId: createProduct
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CreateProduct"
+      responses:
+        "201":
+          description: Product created
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ProductWithStock"
+        "400":
+          description: Invalid product data
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "500":
+          description: Product was not created
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
 
   /products/{productId}:
     get:
@@ -31,18 +70,30 @@ paths:
             type: string
           description: The ID of the product
       responses:
-        '200':
+        "200":
           description: A single product
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/Product'
-        '404':
+                $ref: "#/components/schemas/Product"
+        "400":
+          description: Missing productId or table names
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "404":
           description: Product not found
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/ErrorResponse'
+                $ref: "#/components/schemas/ErrorResponse"
+        "500":
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
 
 components:
   schemas:
@@ -66,6 +117,40 @@ components:
         - title
         - description
         - price
+
+    ProductWithStock:
+      allOf:
+        - $ref: "#/components/schemas/Product"
+        - type: object
+          properties:
+            count:
+              type: integer
+              minimum: 0
+              example: 11
+          required:
+           - count
+
+    CreateProduct:
+      type: object
+      properties:
+        title:
+          type: string
+          example: New Product
+        description:
+          type: string
+          example: Adding a new product
+        price:
+          type: number
+          example: 245
+        count:
+          type: integer
+          minimum: 0
+          example: 45
+      required:
+        - title
+        - description
+        - price
+        - count
 
     ErrorResponse:
       type: object

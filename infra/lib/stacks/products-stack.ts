@@ -1,6 +1,6 @@
 import * as cdk from "aws-cdk-lib";
 import { Construct } from "constructs";
-import { HttpApi, HttpMethod } from "aws-cdk-lib/aws-apigatewayv2";
+import { HttpApi, HttpMethod, CorsHttpMethod } from "aws-cdk-lib/aws-apigatewayv2";
 import { HttpLambdaIntegration } from "aws-cdk-lib/aws-apigatewayv2-integrations";
 import * as lambda from "aws-cdk-lib/aws-lambda";
 import { NodejsFunction } from "aws-cdk-lib/aws-lambda-nodejs";
@@ -53,6 +53,14 @@ export class ProductsStack extends cdk.Stack {
 
         const api = new HttpApi(this, "ProductsApi", {
             apiName: "Products Service",
+            corsPreflight: {
+                allowOrigins: [
+                    "https://d2htpstdr8w7tm.cloudfront.net",
+                    "https://editor.swagger.io"
+                ],
+                allowMethods: [CorsHttpMethod.GET, CorsHttpMethod.POST, CorsHttpMethod.OPTIONS],
+                allowHeaders: ["Content-Type", "Authorization"]
+            }
         });
 
         api.addRoutes({
@@ -72,7 +80,7 @@ export class ProductsStack extends cdk.Stack {
             methods: [HttpMethod.POST],
             integration: new HttpLambdaIntegration("CreateProductIntegration", createProductLambda),
         });
-        
+
         new cdk.CfnOutput(this, "ProductsApiUrl", {
             value: api.url!,
         });
