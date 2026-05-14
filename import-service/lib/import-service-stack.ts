@@ -6,13 +6,14 @@ import { NodejsFunction } from 'aws-cdk-lib/aws-lambda-nodejs';
 import * as lambda from 'aws-cdk-lib/aws-lambda'
 import * as path from "node:path"
 import * as s3 from 'aws-cdk-lib/aws-s3'
+import * as s3n from 'aws-cdk-lib/aws-s3-notifications';
 
 
 export class ImportServiceStack extends cdk.Stack {
   constructor(scope: Construct, id: string, props?: cdk.StackProps) {
     super(scope, id, props);
 
-    /* labmda for S3 bucket allowing policies */
+    /* retrieve S3 bucket to allow policies */
     const uploadBucket = s3.Bucket.fromBucketName(
       this,
       'ImportedBucket',
@@ -30,6 +31,19 @@ export class ImportServiceStack extends cdk.Stack {
     })
 
     uploadBucket.grantPut(importProductsFile)
+
+    /* lambda for import file parser */
+    const importFileParser = new NodejsFunction(this, "ImportFileParserLambda", {
+      runtime: lambda.Runtime.NODEJS_LATEST,
+      handler: 'handler',
+      entry: path.join(__dirname, "../lambdas/file-parser.ts")
+    })
+
+    uploadBucket.addEventNotification(
+      s3.EventType.OBJECT_CREATED,
+      new s3n.LambdaDestination(importFileParser),
+      { prefix: 'uploaded/', suffix: '.csv' }
+    );
 
     const api = new HttpApi(this, "ImportApi", {
       apiName: "Import Service",

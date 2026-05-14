@@ -10,6 +10,7 @@
     "deploy:vlab": "npm run deploy -- --profile vlab_dev"
   },
   "devDependencies": {
+    "@types/aws-lambda": "^8.10.161",
     "@types/jest": "^30",
     "@types/node": "^24.12.4",
     "aws-cdk": "2.1121.0",
@@ -23,6 +24,7 @@
     "@aws-sdk/client-s3": "^3.1045.0",
     "@aws-sdk/s3-request-presigner": "^3.1045.0",
     "aws-cdk-lib": "^2.252.0",
-    "constructs": "^10.5.0"
+    "constructs": "^10.5.0",
+    "csv-parser": "^3.2.1"
   }
 }

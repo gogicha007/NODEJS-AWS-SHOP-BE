@@ -1,7 +1,11 @@
 
 import { getUploadUrl } from "./signer"
 
-const headers = {
+const okHeaders = {
+    "Content-Type": "text/plain"
+}
+
+const errHeaders = {
     "Content-Type": "application/json"
 }
 
@@ -29,7 +33,7 @@ export const handler = async (event: Event) => {
         if (!fileName || !isCsvFile(fileName)) {
             return {
                 statusCode: 400,
-                headers,
+                errHeaders,
                 body: JSON.stringify({ message: 'Missing fileName or not valid csv file' })
             }
         }
@@ -38,14 +42,14 @@ export const handler = async (event: Event) => {
 
         return {
             statusCode: 200,
-            headers,
+            okHeaders,
             body: url
         }
     } catch (err) {
         console.error("import poducts file error", err)
         return {
             statusCode: 500,
-            headers,
+            errHeaders,
             body: JSON.stringify({ message: "Internal server errorF" })
         }
     }
