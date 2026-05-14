@@ -17,7 +17,7 @@ export const handler: S3Handler = async (event: S3Event) => {
     await new Promise<void>((resolve, reject) => {
         body
             .pipe(csv())
-            .on('data', (row) => {
+            .on('data', (row: Record<string, unknown>) => {
                 console.log("row:", row)
             })
             .on('end', resolve)
@@ -40,6 +40,6 @@ export const handler: S3Handler = async (event: S3Event) => {
             Key: key,
         })
     )
-    
+
     console.log('moved file to parsed folder:', { bucket, key, parsedKey })
 }
