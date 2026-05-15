@@ -17,9 +17,9 @@ export class ImportServiceStack extends cdk.Stack {
     const uploadBucket = s3.Bucket.fromBucketName(
       this,
       'ImportedBucket',
-      'vlab-aws-shop-upload'
+      'vlab-aws-shop-upload',
     )
-
+    
     /* lambda for import products file */
     const importProductsFile = new NodejsFunction(this, "ImportProductsFileLambda", {
       runtime: lambda.Runtime.NODEJS_LATEST,
@@ -45,6 +45,10 @@ export class ImportServiceStack extends cdk.Stack {
       { prefix: 'uploaded/', suffix: '.csv' }
     );
 
+    uploadBucket.grantRead(importFileParser)
+    uploadBucket.grantPut(importFileParser)
+    uploadBucket.grantDelete(importFileParser)
+    
     const api = new HttpApi(this, "ImportApi", {
       apiName: "Import Service",
       corsPreflight: {
