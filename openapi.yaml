@@ -1,15 +1,19 @@
 openapi: 3.0.0
 info:
-  title: Product Service API
+  title: AWS Shop API
   version: 1.0.0
-  description: API for managing products
+  description: API for managing aws shop
 
 servers:
   - url: https://pggxwmuiii.execute-api.eu-north-1.amazonaws.com
-    description: aws api gateway
+    description: Product service api gateway
+  - url: https://aetbrujo4m.execute-api.eu-north-1.amazonaws.com
+    description: Import service api gateway
 
 paths:
   /products:
+    servers:
+      - url: https://pggxwmuiii.execute-api.eu-north-1.amazonaws.com
     get:
       summary: Get products list
       operationId: getProductsList
@@ -26,9 +30,8 @@ paths:
           description: Internal server error
           content:
             application/json:
-             schema:
-               $ref: "#/components/schemas/ErrorResponse"
-
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
     post:
       summary: Add a new product
       operationId: createProduct
@@ -59,6 +62,8 @@ paths:
                 $ref: "#/components/schemas/ErrorResponse"
 
   /products/{productId}:
+    servers:
+      - url: https://pggxwmuiii.execute-api.eu-north-1.amazonaws.com
     get:
       summary: Get product by ID
       operationId: getProductById
@@ -84,6 +89,40 @@ paths:
                 $ref: "#/components/schemas/ErrorResponse"
         "404":
           description: Product not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "500":
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /import:
+    servers:
+      - url: https://aetbrujo4m.execute-api.eu-north-1.amazonaws.com
+    get:
+      summary: Get signed URL for CSV upload
+      operationId: getImportSignedUrl
+      parameters:
+        - name: name
+          in: query
+          required: true
+          schema:
+            type: string
+          description: CSV file name to upload, for example products.csv
+      responses:
+        "200":
+          description: Signed URL as plain text
+          content:
+            text/plain:
+              schema:
+                type: string
+                example: https://vlab-aws-shop-upload.s3.eu-north-1.amazonaws.com/uploaded/products.csv?X-Amz-Algorithm=AWS4-HMAC-SHA256
+        "400":
+          description: Missing file name or invalid extension
           content:
             application/json:
               schema:
@@ -128,7 +167,7 @@ components:
               minimum: 0
               example: 11
           required:
-           - count
+            - count
 
     CreateProduct:
       type: object
