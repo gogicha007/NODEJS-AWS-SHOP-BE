@@ -1,117 +1,161 @@
 import * as cdk from "aws-cdk-lib";
 import { Construct } from "constructs";
-import { HttpApi, HttpMethod, CorsHttpMethod } from "aws-cdk-lib/aws-apigatewayv2";
+import {
+  HttpApi,
+  HttpMethod,
+  CorsHttpMethod,
+} from "aws-cdk-lib/aws-apigatewayv2";
 import { HttpLambdaIntegration } from "aws-cdk-lib/aws-apigatewayv2-integrations";
 import * as lambda from "aws-cdk-lib/aws-lambda";
 import { NodejsFunction } from "aws-cdk-lib/aws-lambda-nodejs";
 import * as dynamodb from "aws-cdk-lib/aws-dynamodb";
 import * as path from "node:path";
-import * as sqs from 'aws-cdk-lib/aws-sqs'
-import * as lambdaEventSources from 'aws-cdk-lib/aws-lambda-event-sources'
+import * as sqs from "aws-cdk-lib/aws-sqs";
+import * as lambdaEventSources from "aws-cdk-lib/aws-lambda-event-sources";
+import * as ssm from "aws-cdk-lib/aws-ssm";
 
 export class ProductsStack extends cdk.Stack {
-    constructor(scope: Construct, id: string, props?: cdk.StackProps) {
-        super(scope, id, props);
+  constructor(scope: Construct, id: string, props?: cdk.StackProps) {
+    super(scope, id, props);
 
-        const productsTable = dynamodb.Table.fromTableName(this, "ProductsTable", "products");
-        const stocksTable = dynamodb.Table.fromTableName(this, "StocksTable", "stocks");
+    const productsTable = dynamodb.Table.fromTableName(
+      this,
+      "ProductsTable",
+      "products",
+    );
+    const stocksTable = dynamodb.Table.fromTableName(
+      this,
+      "StocksTable",
+      "stocks",
+    );
 
-        const getProductsListLambda = new NodejsFunction(this, "GetProductsListLambda", {
-            runtime: lambda.Runtime.NODEJS_LATEST,
-            handler: "handler",
-            entry: path.join(__dirname, "../../lambdas/get-products-list.ts"),
-            environment: {
-                PRODUCTS_TABLE_NAME: productsTable.tableName,
-                STOCKS_TABLE_NAME: stocksTable.tableName,
-            },
-        });
+    const getProductsListLambda = new NodejsFunction(
+      this,
+      "GetProductsListLambda",
+      {
+        runtime: lambda.Runtime.NODEJS_LATEST,
+        handler: "handler",
+        entry: path.join(__dirname, "../../lambdas/get-products-list.ts"),
+        environment: {
+          PRODUCTS_TABLE_NAME: productsTable.tableName,
+          STOCKS_TABLE_NAME: stocksTable.tableName,
+        },
+      },
+    );
 
-        const getProductsByIdLambda = new NodejsFunction(this, "GetProductByIdLambda", {
-            runtime: lambda.Runtime.NODEJS_LATEST,
-            handler: "handler",
-            entry: path.join(__dirname, "../../lambdas/get-products-by-id.ts"),
-            environment: {
-                PRODUCTS_TABLE_NAME: productsTable.tableName,
-                STOCKS_TABLE_NAME: stocksTable.tableName,
-            },
-        });
+    const getProductsByIdLambda = new NodejsFunction(
+      this,
+      "GetProductByIdLambda",
+      {
+        runtime: lambda.Runtime.NODEJS_LATEST,
+        handler: "handler",
+        entry: path.join(__dirname, "../../lambdas/get-products-by-id.ts"),
+        environment: {
+          PRODUCTS_TABLE_NAME: productsTable.tableName,
+          STOCKS_TABLE_NAME: stocksTable.tableName,
+        },
+      },
+    );
 
-        const createProductLambda = new NodejsFunction(this, "CreateProductLambda", {
-            runtime: lambda.Runtime.NODEJS_LATEST,
-            handler: "handler",
-            entry: path.join(__dirname, "../../lambdas/create-product.ts"),
-            environment: {
-                PRODUCTS_TABLE_NAME: productsTable.tableName,
-                STOCKS_TABLE_NAME: stocksTable.tableName
-            }
-        })
+    const createProductLambda = new NodejsFunction(
+      this,
+      "CreateProductLambda",
+      {
+        runtime: lambda.Runtime.NODEJS_LATEST,
+        handler: "handler",
+        entry: path.join(__dirname, "../../lambdas/create-product.ts"),
+        environment: {
+          PRODUCTS_TABLE_NAME: productsTable.tableName,
+          STOCKS_TABLE_NAME: stocksTable.tableName,
+        },
+      },
+    );
 
+    /* SQS Queue functionality */
+    const catalogBatchProcessLambda = new NodejsFunction(
+      this,
+      "CatalogBatchProcessLambda",
+      {
+        runtime: lambda.Runtime.NODEJS_LATEST,
+        handler: "handler",
+        entry: path.join(__dirname, "../../lambdas/catalog-batch-process.ts"),
+        environment: {
+          PRODUCTS_TABLE_NAME: productsTable.tableName,
+          STOCKS_TABLE_NAME: stocksTable.tableName,
+        },
+      },
+    );
 
+    const catalogItemsQueue = new sqs.Queue(this, "CatalogItemsQueue", {
+      visibilityTimeout: cdk.Duration.seconds(300),
+      retentionPeriod: cdk.Duration.days(4),
+    });
 
-        /* SQS Queue functionality */
-        const catalogBatchProcessLambda = new NodejsFunction(this, "CatalogBatchProcessLambda", {
-            runtime: lambda.Runtime.NODEJS_LATEST,
-            handler: "handler",
-            entry: path.join(__dirname, '../../lambdas/catalog-batch-process.ts'),
-            environment: {
-                PRODUCTS_TABLE_NAME: productsTable.tableName,
-                STOCKS_TABLE_NAME: stocksTable.tableName
-            }
-        })
+    new ssm.StringParameter(this, "CatalogQueueArnParameter", {
+      parameterName: "/products-service/queues/catalog-items-arn",
+      stringValue: catalogItemsQueue.queueArn,
+    });
 
-        const catalogItemsQueue = new sqs.Queue(this, "CatalogItemsQueue", {
-            visibilityTimeout: cdk.Duration.seconds(300),
-            retentionPeriod: cdk.Duration.days(4)
-        })
+    catalogBatchProcessLambda.addEventSource(
+      new lambdaEventSources.SqsEventSource(catalogItemsQueue, {
+        batchSize: 5,
+      }),
+    );
 
-        catalogBatchProcessLambda.addEventSource(
-            new lambdaEventSources.SqsEventSource(
-                catalogItemsQueue,
-                { batchSize: 5, }
-            )
-        )
+    productsTable.grantReadData(getProductsListLambda);
+    stocksTable.grantReadData(getProductsListLambda);
+    productsTable.grantReadData(getProductsByIdLambda);
+    stocksTable.grantReadData(getProductsByIdLambda);
+    productsTable.grantWriteData(createProductLambda);
+    stocksTable.grantWriteData(createProductLambda);
+    productsTable.grantWriteData(catalogBatchProcessLambda);
 
-        productsTable.grantReadData(getProductsListLambda);
-        stocksTable.grantReadData(getProductsListLambda);
-        productsTable.grantReadData(getProductsByIdLambda);
-        stocksTable.grantReadData(getProductsByIdLambda);
-        productsTable.grantWriteData(createProductLambda)
-        stocksTable.grantWriteData(createProductLambda)
-        productsTable.grantWriteData(catalogBatchProcessLambda)
+    /* Product Service api */
+    const api = new HttpApi(this, "ProductsApi", {
+      apiName: "Products Service",
+      corsPreflight: {
+        allowOrigins: [
+          "https://d2htpstdr8w7tm.cloudfront.net",
+          "https://editor.swagger.io",
+        ],
+        allowMethods: [
+          CorsHttpMethod.GET,
+          CorsHttpMethod.POST,
+          CorsHttpMethod.OPTIONS,
+        ],
+        allowHeaders: ["Content-Type", "Authorization"],
+      },
+    });
 
-        /* Product Service api */
-        const api = new HttpApi(this, "ProductsApi", {
-            apiName: "Products Service",
-            corsPreflight: {
-                allowOrigins: [
-                    "https://d2htpstdr8w7tm.cloudfront.net",
-                    "https://editor.swagger.io"
-                ],
-                allowMethods: [CorsHttpMethod.GET, CorsHttpMethod.POST, CorsHttpMethod.OPTIONS],
-                allowHeaders: ["Content-Type", "Authorization"]
-            }
-        });
+    api.addRoutes({
+      path: "/products",
+      methods: [HttpMethod.GET],
+      integration: new HttpLambdaIntegration(
+        "GetProductsListIntegration",
+        getProductsListLambda,
+      ),
+    });
 
-        api.addRoutes({
-            path: "/products",
-            methods: [HttpMethod.GET],
-            integration: new HttpLambdaIntegration("GetProductsListIntegration", getProductsListLambda),
-        });
+    api.addRoutes({
+      path: "/products/{productId}",
+      methods: [HttpMethod.GET],
+      integration: new HttpLambdaIntegration(
+        "GetProductsByIdIntegration",
+        getProductsByIdLambda,
+      ),
+    });
 
-        api.addRoutes({
-            path: "/products/{productId}",
-            methods: [HttpMethod.GET],
-            integration: new HttpLambdaIntegration("GetProductsByIdIntegration", getProductsByIdLambda),
-        });
+    api.addRoutes({
+      path: "/products",
+      methods: [HttpMethod.POST],
+      integration: new HttpLambdaIntegration(
+        "CreateProductIntegration",
+        createProductLambda,
+      ),
+    });
 
-        api.addRoutes({
-            path: "/products",
-            methods: [HttpMethod.POST],
-            integration: new HttpLambdaIntegration("CreateProductIntegration", createProductLambda),
-        });
-
-        new cdk.CfnOutput(this, "ProductsApiUrl", {
-            value: api.url!,
-        });
-    }
+    new cdk.CfnOutput(this, "ProductsApiUrl", {
+      value: api.url!,
+    });
+  }
 }
