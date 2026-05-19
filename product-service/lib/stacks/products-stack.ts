@@ -13,6 +13,8 @@ import * as path from "node:path";
 import * as sqs from "aws-cdk-lib/aws-sqs";
 import * as lambdaEventSources from "aws-cdk-lib/aws-lambda-event-sources";
 import * as ssm from "aws-cdk-lib/aws-ssm";
+import * as sns from 'aws-cdk-lib/aws-sns'
+import * as snsSubscriptions from 'aws-cdk-lib/aws-sns-subscriptions'
 
 export class ProductsStack extends cdk.Stack {
   constructor(scope: Construct, id: string, props?: cdk.StackProps) {
@@ -102,6 +104,20 @@ export class ProductsStack extends cdk.Stack {
       }),
     );
 
+    /* SNS topic */
+    const createProductTopic = new sns.Topic(this, 'CreateProductTopic', {
+      topicName: 'product-alerts',
+      displayName: 'Create Product Alert Topic'
+    })
+
+    createProductTopic.addSubscription(
+      new snsSubscriptions.EmailSubscription('gogicha@gmail.com')
+    )
+
+    catalogBatchProcessLambda.addEnvironment('SNS_TOPIC_ARN', createProductTopic.topicArn)
+
+    createProductTopic.grantPublish(catalogBatchProcessLambda)
+
     productsTable.grantReadData(getProductsListLambda);
     stocksTable.grantReadData(getProductsListLambda);
     productsTable.grantReadData(getProductsByIdLambda);
@@ -109,6 +125,7 @@ export class ProductsStack extends cdk.Stack {
     productsTable.grantWriteData(createProductLambda);
     stocksTable.grantWriteData(createProductLambda);
     productsTable.grantWriteData(catalogBatchProcessLambda);
+    stocksTable.grantWriteData(catalogBatchProcessLambda)
 
     /* Product Service api */
     const api = new HttpApi(this, "ProductsApi", {
