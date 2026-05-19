@@ -13,9 +13,11 @@
     "deploy:vlab": "npm run deploy -- --profile vlab_dev"
   },
   "devDependencies": {
-    "@types/jest": "^30",
+    "@types/jest": "^30.0.0",
     "@types/node": "^24.12.2",
     "aws-cdk": "2.1119.0",
+    "aws-sdk-client-mock": "^4.1.0",
+    "aws-sdk-client-mock-jest": "^4.1.0",
     "esbuild": "^0.28.0",
     "jest": "^30.3.0",
     "ts-jest": "^29",
@@ -24,9 +26,9 @@
   },
   "dependencies": {
     "@aws-doc-sdk-examples/lib": "^1.0.1",
-    "@aws-sdk/client-dynamodb": "^3.1042.0",
+    "@aws-sdk/client-dynamodb": "^3.1049.0",
     "@aws-sdk/client-sns": "^3.1049.0",
-    "@aws-sdk/lib-dynamodb": "^3.1042.0",
+    "@aws-sdk/lib-dynamodb": "^3.1049.0",
     "@types/aws-lambda": "^8.10.161",
     "aws-cdk-lib": "^2.248.0",
     "constructs": "^10.5.0"
