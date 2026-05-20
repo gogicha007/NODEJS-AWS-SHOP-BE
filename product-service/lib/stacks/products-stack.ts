@@ -114,6 +114,15 @@ export class ProductsStack extends cdk.Stack {
       new snsSubscriptions.EmailSubscription('gogicha@gmail.com')
     )
 
+    createProductTopic.addSubscription(
+      new snsSubscriptions.EmailSubscription('gogicha26@hotmail.com', {
+        filterPolicy: {
+          price: sns.SubscriptionFilter.numericFilter({
+            greaterThan: 100,
+          })
+        }
+      })
+    )
     catalogBatchProcessLambda.addEnvironment('SNS_TOPIC_ARN', createProductTopic.topicArn)
 
     createProductTopic.grantPublish(catalogBatchProcessLambda)
