@@ -46,12 +46,14 @@ describe('catalogBatchProcess handler', () => {
             TopicArn: topicArn,
             Subject: 'Products Batch Processed',
             MessageAttributes: {
-                price: {
-                    DataType: 'Number',
-                    StringValue: '10',
+                notificationType: {
+                    DataType: 'String',
+                    StringValue: 'all-products',
                 },
             },
         });
+        // @ts-ignore
+        expect(snsMock.commandCalls(PublishCommand)).toHaveLength(1);
         // @ts-ignore
         expect(result.batchItemFailures).toHaveLength(0);
     });
@@ -88,13 +90,26 @@ describe('catalogBatchProcess handler', () => {
         // SNS should still be sent for the successful one
         // @ts-ignore
         expect(snsMock).toHaveReceivedCommandWith(PublishCommand, {
+            Subject: 'Products Batch Processed',
             MessageAttributes: {
-                price: {
-                    DataType: 'Number',
-                    StringValue: '150',
+                notificationType: {
+                    DataType: 'String',
+                    StringValue: 'all-products',
                 },
             },
         });
+        // @ts-ignore
+        expect(snsMock).toHaveReceivedCommandWith(PublishCommand, {
+            Subject: 'Expensive Products Batch Processed',
+            MessageAttributes: {
+                notificationType: {
+                    DataType: 'String',
+                    StringValue: 'expensive-products',
+                },
+            },
+        });
+        // @ts-ignore
+        expect(snsMock.commandCalls(PublishCommand)).toHaveLength(2);
     });
 
     // @ts-ignore

@@ -113,6 +113,11 @@ export class ProductsStack extends cdk.Stack {
       topic: createProductTopic,
       protocol: sns.SubscriptionProtocol.EMAIL,
       endpoint: 'gogicha@gmail.com',
+      filterPolicy: {
+        notificationType: sns.SubscriptionFilter.stringFilter({
+          allowlist: ['all-products'],
+        }),
+      },
     })
 
     new sns.Subscription(this, 'CreateProductTopicHotmailSubscriptionV2', {
@@ -120,8 +125,8 @@ export class ProductsStack extends cdk.Stack {
       protocol: sns.SubscriptionProtocol.EMAIL,
       endpoint: 'gogicha26@hotmail.com',
       filterPolicy: {
-        price: sns.SubscriptionFilter.numericFilter({
-          greaterThan: 100,
+        notificationType: sns.SubscriptionFilter.stringFilter({
+          allowlist: ['expensive-products'],
         }),
       },
     })
