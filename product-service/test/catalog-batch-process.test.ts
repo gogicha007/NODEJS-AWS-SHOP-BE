@@ -45,6 +45,12 @@ describe('catalogBatchProcess handler', () => {
         expect(snsMock).toHaveReceivedCommandWith(PublishCommand, {
             TopicArn: topicArn,
             Subject: 'Products Batch Processed',
+            MessageAttributes: {
+                price: {
+                    DataType: 'Number',
+                    StringValue: '10',
+                },
+            },
         });
         // @ts-ignore
         expect(result.batchItemFailures).toHaveLength(0);
@@ -54,7 +60,7 @@ describe('catalogBatchProcess handler', () => {
     it('should handle partial failures and return batchItemFailures', async () => {
         // @ts-ignore
         (createProductWithStock as any)
-            .mockResolvedValueOnce({ id: '1' })
+            .mockResolvedValueOnce({ id: '1', title: 'P1', description: 'D1', price: 150, count: 1 })
             .mockRejectedValueOnce(new Error('DynamoDB Error'));
         
         snsMock.on(PublishCommand).resolves({});
@@ -81,7 +87,14 @@ describe('catalogBatchProcess handler', () => {
         
         // SNS should still be sent for the successful one
         // @ts-ignore
-        expect(snsMock).toHaveReceivedCommand(PublishCommand);
+        expect(snsMock).toHaveReceivedCommandWith(PublishCommand, {
+            MessageAttributes: {
+                price: {
+                    DataType: 'Number',
+                    StringValue: '150',
+                },
+            },
+        });
     });
 
     // @ts-ignore

@@ -30,10 +30,18 @@ export const handler = async (event: SQSEvent) => {
     }
 
     if (productsCreated.length > 0) {
+        const maxPrice = Math.max(...productsCreated.map((product) => product.price))
+
         await snsClient.send(new PublishCommand({
             TopicArn: process.env.SNS_TOPIC_ARN,
             Subject: 'Products Batch Processed',
-            Message: `${productsCreated.length} products added`
+            Message: JSON.stringify(productsCreated, null, 2),
+            MessageAttributes: {
+                price: {
+                    DataType: 'Number',
+                    StringValue: maxPrice.toString(),
+                },
+            },
         }))
     }
     return {
