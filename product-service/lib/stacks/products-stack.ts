@@ -14,7 +14,6 @@ import * as sqs from "aws-cdk-lib/aws-sqs";
 import * as lambdaEventSources from "aws-cdk-lib/aws-lambda-event-sources";
 import * as ssm from "aws-cdk-lib/aws-ssm";
 import * as sns from 'aws-cdk-lib/aws-sns'
-import * as snsSubscriptions from 'aws-cdk-lib/aws-sns-subscriptions'
 
 export class ProductsStack extends cdk.Stack {
   constructor(scope: Construct, id: string, props?: cdk.StackProps) {
@@ -110,19 +109,22 @@ export class ProductsStack extends cdk.Stack {
       displayName: 'Create Product Alert Topic'
     })
 
-    createProductTopic.addSubscription(
-      new snsSubscriptions.EmailSubscription('gogicha@gmail.com')
-    )
+    new sns.Subscription(this, 'CreateProductTopicGmailSubscriptionV2', {
+      topic: createProductTopic,
+      protocol: sns.SubscriptionProtocol.EMAIL,
+      endpoint: 'gogicha@gmail.com',
+    })
 
-    createProductTopic.addSubscription(
-      new snsSubscriptions.EmailSubscription('gogicha26@hotmail.com', {
-        filterPolicy: {
-          price: sns.SubscriptionFilter.numericFilter({
-            greaterThan: 100,
-          })
-        }
-      })
-    )
+    new sns.Subscription(this, 'CreateProductTopicHotmailSubscriptionV2', {
+      topic: createProductTopic,
+      protocol: sns.SubscriptionProtocol.EMAIL,
+      endpoint: 'gogicha26@hotmail.com',
+      filterPolicy: {
+        price: sns.SubscriptionFilter.numericFilter({
+          greaterThan: 100,
+        }),
+      },
+    })
     catalogBatchProcessLambda.addEnvironment('SNS_TOPIC_ARN', createProductTopic.topicArn)
 
     createProductTopic.grantPublish(catalogBatchProcessLambda)

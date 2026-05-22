@@ -8,7 +8,7 @@ export type ParsedProductRow = {
 const requiredHeaders = ["title", "description", "price", "count"];
 
 function normalizeHeader(header: string) {
-  return header.trim().toLowerCase();
+  return header.replace(/^\uFEFF/, "").trim().toLowerCase();
 }
 
 export function validateHeaders(headers: string[]) {

@@ -24,12 +24,22 @@ export const handler: S3Handler = async (event: S3Event) => {
     const obj = await s3.send(new GetObjectCommand({ Bucket: bucket, Key: key }));
     const body = obj.Body as Readable;
 
+    function isRowEmpty(row: Record<string, unknown>) {
+        return Object.values(row).every(value =>
+            value === undefined ||
+            value === null ||
+            (typeof value === 'string' && value.trim() === '')
+        );
+    }
+
     await new Promise<void>((resolve, reject) => {
         const validRows: ParsedProductRow[] = [];
         let validationError: Error | null = null;
 
         body
-            .pipe(csv())
+            .pipe(csv({
+                mapHeaders: ({ header }) => header.replace(/^\uFEFF/, "").trim().toLowerCase()
+            }))
             .on("headers", (headers: string[]) => {
                 const missingHeaders = validateHeaders(headers);
                 if (missingHeaders.length > 0) {
@@ -39,10 +49,11 @@ export const handler: S3Handler = async (event: S3Event) => {
                 }
             })
             .on("data", (row: Record<string, unknown>) => {
-                if (validationError) {
+                if (validationError || isRowEmpty(row)) {
+                    console.log('check if row is empty', validationError)
                     return;
                 }
-
+                
                 try {
                     validRows.push(validateAndMapRow(row));
                 } catch (err) {
