@@ -67,10 +67,13 @@ export class ImportServiceStack extends cdk.Stack {
       this, '/api/import-service/basic-auth'
     )
 
-    const importedBasicAuthorizer = lambda.Function.fromFunctionArn(
+    const importedBasicAuthorizer = lambda.Function.fromFunctionAttributes(
       this,
       'ImportedAuthorizer',
-      basicAuthorizerLambdaARN
+      {
+        functionArn: basicAuthorizerLambdaARN,
+        sameEnvironment: true
+      }
     )
 
     const basicAuthorizer = new HttpLambdaAuthorizer(

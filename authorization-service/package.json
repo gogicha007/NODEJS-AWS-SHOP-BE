@@ -5,13 +5,16 @@
     "build": "tsc",
     "watch": "tsc -w",
     "test": "jest",
-    "cdk": "cdk"
+    "cdk": "cdk",
+    "deploy": "cdk deploy AuthorizationServiceStack --require-approval never",
+    "deploy:vlab": "npm run deploy -- --profile vlab_dev"
   },
   "devDependencies": {
     "@types/aws-lambda": "^8.10.161",
     "@types/jest": "^30",
     "@types/node": "^24.12.4",
     "aws-cdk": "2.1121.0",
+    "esbuild": "^0.28.0",
     "jest": "^30",
     "ts-jest": "^29",
     "ts-node": "^10.9.2",
