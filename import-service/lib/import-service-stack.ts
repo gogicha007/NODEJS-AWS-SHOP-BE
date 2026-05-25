@@ -7,6 +7,8 @@ import * as lambda from 'aws-cdk-lib/aws-lambda'
 import * as path from "node:path"
 import * as s3 from 'aws-cdk-lib/aws-s3'
 import * as s3n from 'aws-cdk-lib/aws-s3-notifications';
+import * as ssm from 'aws-cdk-lib/aws-ssm'
+import { HttpLambdaAuthorizer, HttpLambdaResponseType } from 'aws-cdk-lib/aws-apigatewayv2-authorizers';
 
 
 export class ImportServiceStack extends cdk.Stack {
@@ -19,7 +21,7 @@ export class ImportServiceStack extends cdk.Stack {
       'ImportedBucket',
       'vlab-aws-shop-upload',
     )
-    
+
     /* lambda for import products file */
     const importProductsFile = new NodejsFunction(this, "ImportProductsFileLambda", {
       runtime: lambda.Runtime.NODEJS_LATEST,
@@ -48,7 +50,7 @@ export class ImportServiceStack extends cdk.Stack {
     uploadBucket.grantRead(importFileParser)
     uploadBucket.grantPut(importFileParser)
     uploadBucket.grantDelete(importFileParser)
-    
+
     const api = new HttpApi(this, "ImportApi", {
       apiName: "Import Service",
       corsPreflight: {
@@ -58,13 +60,38 @@ export class ImportServiceStack extends cdk.Stack {
         ],
         allowMethods: [CorsHttpMethod.GET, CorsHttpMethod.OPTIONS],
         allowHeaders: ["Content-Type", "Authorization"]
-      }
+      },
     })
+
+    const basicAuthorizerLambdaARN = ssm.StringParameter.valueForStringParameter(
+      this, '/api/import-service/basic-auth'
+    )
+
+    const importedBasicAuthorizer = lambda.Function.fromFunctionArn(
+      this,
+      'ImportedAuthorizer',
+      basicAuthorizerLambdaARN
+    )
+
+    const basicAuthorizer = new HttpLambdaAuthorizer(
+      'HttpBasicAuthorizer',
+      importedBasicAuthorizer,
+      {
+        authorizerName: "HttpBasicAuthorizer",
+        responseTypes: [HttpLambdaResponseType.SIMPLE],
+        identitySource: ['$request.header.Authorization']
+      }
+    )
+
 
     api.addRoutes({
       path: "/import",
       methods: [HttpMethod.GET],
-      integration: new HttpLambdaIntegration("ImportProductsFileIntegration", importProductsFile)
+      integration: new HttpLambdaIntegration(
+        "ImportProductsFileIntegration",
+        importProductsFile
+      ),
+      authorizer: basicAuthorizer,
     })
   }
 }
