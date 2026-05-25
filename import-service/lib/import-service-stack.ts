@@ -81,7 +81,7 @@ export class ImportServiceStack extends cdk.Stack {
       importedBasicAuthorizer,
       {
         authorizerName: "HttpBasicAuthorizer",
-        responseTypes: [HttpLambdaResponseType.SIMPLE],
+        responseTypes: [HttpLambdaResponseType.IAM],
         identitySource: ['$request.header.Authorization']
       }
     )

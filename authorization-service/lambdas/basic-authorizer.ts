@@ -2,7 +2,8 @@ type Event = {
     headers?: {
         authorization?: string
         Authorization?: string
-    }
+    },
+    methodArn?: string
 }
 
 export const handler = async (event: Event) => {
@@ -10,7 +11,19 @@ export const handler = async (event: Event) => {
 
     const authHeader = headers['Authorization'] || headers['authorization']
 
-    if (!authHeader) { throw new Error('Unauthorized') }
+    const tmp = event.methodArn?.split(':')
+    if (!tmp || !authHeader) throw new Error('Unauthorized')
+
+    const apiGatewayArntmp = tmp[5].split('/')
+    const awsAccountId = tmp[4]
+    const region = tmp[3]
+    const restApiId = apiGatewayArntmp[0]
+    const state = apiGatewayArntmp[1]
+    const method = apiGatewayArntmp[2]
+    let resource = '/'
+    if (apiGatewayArntmp[3]) {
+        resource += apiGatewayArntmp[3]
+    }
 
     try {
         const [authType, encoded] = authHeader.split(' ')
@@ -22,9 +35,7 @@ export const handler = async (event: Event) => {
         const decoded = Buffer.from(encoded, 'base64').toString('utf8')
         const [username, password] = decoded.split(':')
 
-        if (username && password && password === process.env[username]) return {
-            isAuthorized: true, context: { user: username }
-        }
+        if (username && password && password === process.env[username]) return generateAllow('me', event.methodArn)
     } catch {
         return {
             isAuthorized: false, context: { error: 'Access denied' }
@@ -34,4 +45,20 @@ export const handler = async (event: Event) => {
     return {
         isAuthorized: false, context: { error: 'Access denied' }
     }
+}
+
+
+const generatePolicy = (principalId: string, effect: string, resource: string) => {
+    const authResponce = {}
+    Object.assign(authResponce, { principalId: principalId })
+
+    return authResponce
+}
+
+const generateAllow = (principalId: string, resource: string) => {
+    return generatePolicy(principalId, 'Allow', resource)
+}
+
+const generateDeny = (principalId: string, resource: string) => {
+    return generatePolicy(principalId, "Deny", resource)
 }
