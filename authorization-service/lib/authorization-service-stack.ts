@@ -2,6 +2,7 @@ import * as cdk from 'aws-cdk-lib/core';
 import { Construct } from 'constructs';
 import { NodejsFunction } from 'aws-cdk-lib/aws-lambda-nodejs';
 import * as lambda from 'aws-cdk-lib/aws-lambda'
+import * as iam from 'aws-cdk-lib/aws-iam'
 import * as path from "node:path"
 import * as ssm from 'aws-cdk-lib/aws-ssm'
 import 'dotenv/config'
@@ -18,6 +19,12 @@ export class AuthorizationServiceStack extends cdk.Stack {
       environment: {
         gogicha007: process.env.gogicha007 || 'TEST_PASSWORD'
       }
+    })
+
+    basicAuthorizer.addPermission('AllowHttpApiGatewayInvokeAuthorizer', {
+      principal: new iam.ServicePrincipal('apigateway.amazonaws.com'),
+      action: 'lambda:InvokeFunction',
+      sourceArn: `arn:aws:execute-api:${cdk.Aws.REGION}:${cdk.Aws.ACCOUNT_ID}:*/authorizers/*`,
     })
 
     new ssm.StringParameter(this, 'BasicAuthorizerArnParameter', {

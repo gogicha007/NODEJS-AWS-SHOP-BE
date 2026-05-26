@@ -19,6 +19,10 @@ type AuthorizerResponse = {
       Resource: string;
     }>;
   };
+  context?: {
+    principal: string;
+    effect: PolicyEffect;
+  };
 };
 
 export const handler = async (event: Event): Promise<AuthorizerResponse> => {
@@ -72,6 +76,10 @@ const generatePolicy = (
           Resource: safeResource,
         },
       ],
+    },
+    context: {
+      principal: principalId,
+      effect,
     },
   };
 
