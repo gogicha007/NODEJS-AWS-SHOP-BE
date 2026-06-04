@@ -23,28 +23,36 @@ export class ImportServiceStack extends cdk.Stack {
     )
 
     /* lambda for import products file */
-    const importProductsFile = new NodejsFunction(this, "ImportProductsFileLambda", {
-      runtime: lambda.Runtime.NODEJS_LATEST,
-      handler: 'handler',
-      entry: path.join(__dirname, "../lambdas/import-products.ts"),
-      environment: {
-        BUCKET_NAME: uploadBucket.bucketName
-      }
-    })
+    const importProductsFile = new NodejsFunction(
+      this,
+      "ImportProductsFileLambda",
+      {
+        runtime: lambda.Runtime.NODEJS_LATEST,
+        handler: "handler",
+        entry: path.join(__dirname, "../lambdas/import-products.ts"),
+        environment: {
+          BUCKET_NAME: uploadBucket.bucketName,
+        },
+      },
+    );
 
-    uploadBucket.grantPut(importProductsFile)
+    uploadBucket.grantPut(importProductsFile);
 
     /* lambda for import file parser */
-    const importFileParser = new NodejsFunction(this, "ImportFileParserLambda", {
-      runtime: lambda.Runtime.NODEJS_LATEST,
-      handler: 'handler',
-      entry: path.join(__dirname, "../lambdas/file-parser.ts")
-    })
+    const importFileParser = new NodejsFunction(
+      this,
+      "ImportFileParserLambda",
+      {
+        runtime: lambda.Runtime.NODEJS_LATEST,
+        handler: "handler",
+        entry: path.join(__dirname, "../lambdas/file-parser.ts"),
+      },
+    );
 
     uploadBucket.addEventNotification(
       s3.EventType.OBJECT_CREATED,
       new s3n.LambdaDestination(importFileParser),
-      { prefix: 'uploaded/', suffix: '.csv' }
+      { prefix: "uploaded/", suffix: ".csv" },
     );
 
     uploadBucket.grantRead(importFileParser)
@@ -56,7 +64,7 @@ export class ImportServiceStack extends cdk.Stack {
       corsPreflight: {
         allowOrigins: [
           "https://d2htpstdr8w7tm.cloudfront.net",
-          "https://editor.swagger.io"
+          "https://editor.swagger.io",
         ],
         allowMethods: [CorsHttpMethod.GET, CorsHttpMethod.OPTIONS],
         allowHeaders: ["Content-Type", "Authorization"]
