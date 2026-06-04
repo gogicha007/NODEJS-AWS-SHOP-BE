@@ -1,18 +1,15 @@
-import * as cdk from "aws-cdk-lib/core";
-import { Construct } from "constructs";
-import {
-  HttpApi,
-  HttpMethod,
-  CorsHttpMethod,
-} from "aws-cdk-lib/aws-apigatewayv2";
-import { HttpLambdaIntegration } from "aws-cdk-lib/aws-apigatewayv2-integrations";
-import { NodejsFunction } from "aws-cdk-lib/aws-lambda-nodejs";
-import * as lambda from "aws-cdk-lib/aws-lambda";
-import * as path from "node:path";
-import * as s3 from "aws-cdk-lib/aws-s3";
-import * as s3n from "aws-cdk-lib/aws-s3-notifications";
-import * as ssm from "aws-cdk-lib/aws-ssm";
-import * as sqs from "aws-cdk-lib/aws-sqs";
+import * as cdk from 'aws-cdk-lib/core';
+import { Construct } from 'constructs';
+import { HttpApi, HttpMethod, CorsHttpMethod } from 'aws-cdk-lib/aws-apigatewayv2';
+import { HttpLambdaIntegration } from 'aws-cdk-lib/aws-apigatewayv2-integrations';
+import { NodejsFunction } from 'aws-cdk-lib/aws-lambda-nodejs';
+import * as lambda from 'aws-cdk-lib/aws-lambda'
+import * as path from "node:path"
+import * as s3 from 'aws-cdk-lib/aws-s3'
+import * as s3n from 'aws-cdk-lib/aws-s3-notifications';
+import * as ssm from 'aws-cdk-lib/aws-ssm'
+import { HttpLambdaAuthorizer, HttpLambdaResponseType } from 'aws-cdk-lib/aws-apigatewayv2-authorizers';
+
 
 export class ImportServiceStack extends cdk.Stack {
   constructor(scope: Construct, id: string, props?: cdk.StackProps) {
@@ -21,9 +18,9 @@ export class ImportServiceStack extends cdk.Stack {
     /* retrieve S3 bucket to allow policies */
     const uploadBucket = s3.Bucket.fromBucketName(
       this,
-      "ImportedBucket",
-      "vlab-aws-shop-upload",
-    );
+      'ImportedBucket',
+      'vlab-aws-shop-upload',
+    )
 
     /* lambda for import products file */
     const importProductsFile = new NodejsFunction(
@@ -58,9 +55,9 @@ export class ImportServiceStack extends cdk.Stack {
       { prefix: "uploaded/", suffix: ".csv" },
     );
 
-    uploadBucket.grantRead(importFileParser);
-    uploadBucket.grantPut(importFileParser);
-    uploadBucket.grantDelete(importFileParser);
+    uploadBucket.grantRead(importFileParser)
+    uploadBucket.grantPut(importFileParser)
+    uploadBucket.grantDelete(importFileParser)
 
     const api = new HttpApi(this, "ImportApi", {
       apiName: "Import Service",
@@ -70,38 +67,42 @@ export class ImportServiceStack extends cdk.Stack {
           "https://editor.swagger.io",
         ],
         allowMethods: [CorsHttpMethod.GET, CorsHttpMethod.OPTIONS],
-        allowHeaders: ["Content-Type", "Authorization"],
+        allowHeaders: ["Content-Type", "Authorization"]
       },
-    });
+    })
+
+    const basicAuthorizerLambdaARN = ssm.StringParameter.valueForStringParameter(
+      this, '/api/import-service/basic-auth'
+    )
+
+    const importedBasicAuthorizer = lambda.Function.fromFunctionAttributes(
+      this,
+      'ImportedAuthorizer',
+      {
+        functionArn: basicAuthorizerLambdaARN,
+        sameEnvironment: true
+      }
+    )
+
+    const basicAuthorizer = new HttpLambdaAuthorizer(
+      'HttpBasicAuthorizerV2',
+      importedBasicAuthorizer,
+      {
+        authorizerName: "HttpBasicAuthorizerV2",
+        responseTypes: [HttpLambdaResponseType.IAM],
+        identitySource: ['$request.header.Authorization']
+      }
+    )
+
 
     api.addRoutes({
       path: "/import",
       methods: [HttpMethod.GET],
       integration: new HttpLambdaIntegration(
         "ImportProductsFileIntegration",
-        importProductsFile,
+        importProductsFile
       ),
-    });
-
-    /* SQS queue service setup */
-    const catalogQueueArn = ssm.StringParameter.valueForStringParameter(
-      this,
-      "/products-service/queues/catalog-items-arn",
-    );
-
-    const importedCatalogQueue = sqs.Queue.fromQueueAttributes(
-      this,
-      "ImportedCatalogQueue",
-      {
-        queueArn: catalogQueueArn,
-      },
-    );
-
-    importedCatalogQueue.grantSendMessages(importFileParser);
-
-    importFileParser.addEnvironment(
-      "SQS_QUEUE_URL",
-      importedCatalogQueue.queueUrl,
-    );
+      authorizer: basicAuthorizer,
+    })
   }
 }
