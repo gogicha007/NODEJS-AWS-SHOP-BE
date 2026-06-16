@@ -1,4 +1,5 @@
 const http = require("http");
+const https = require("https");
 require("dotenv").config();
 
 const PORT = process.env.PORT || 3000;
@@ -62,7 +63,7 @@ const server = http.createServer((req, res) => {
     req.method === "GET" &&
     recipientServiceName === "product" &&
     (downstreamPath === "/products" || downstreamPath === "");
-    
+
   if (isGetProducts) {
     const now = Date.now();
     const isCacheValid = now - productsCache.updatedAt < CACHE_DURATION_MS;
@@ -81,7 +82,11 @@ const server = http.createServer((req, res) => {
 
   delete forwardOptions.headers.host;
 
-  const proxyReq = http.request(targetUrl, forwardOptions, (proxyRes) => {
+  const clientModule = targetUrl.startsWith("https:") ? https : http;
+
+  console.log(`BFF Service routing via ${targetUrl.startsWith('https:') ? 'HTTPS' : 'HTTP'} to: ${targetUrl}`);
+
+  const proxyReq = clientModule.request(targetUrl, forwardOptions, (proxyRes) => {
     if (isGetProducts && proxyRes.statusCode === 200) {
       let bodyChunks = [];
 
