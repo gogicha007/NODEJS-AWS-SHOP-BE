@@ -3,6 +3,15 @@ require("dotenv").config();
 
 const PORT = process.env.PORT || 3000;
 
+const CACHE_DURATION_MS = 2 * 60 * 1000;
+
+let productsCache = {
+  data: null,
+  headers: null,
+  statusCode: null,
+  updatedAt: 0,
+};
+
 const server = http.createServer((req, res) => {
   res.setHeader("Access-Control-Allow-Origin", "*");
   res.setHeader(
@@ -45,8 +54,25 @@ const server = http.createServer((req, res) => {
   }
 
   if (downstreamPath === "/") downstreamPath = "";
+
   const targetUrl = `${targetServiceBaseUrl}${downstreamPath}`;
   console.log("bff service, targetUrl ", targetUrl);
+
+  const isGetProducts =
+    req.method === "GET" &&
+    recipientServiceName === "product" &&
+    (downstreamPath === "/products" || downstreamPath === "");
+    
+  if (isGetProducts) {
+    const now = Date.now();
+    const isCacheValid = now - productsCache.updatedAt < CACHE_DURATION_MS;
+
+    if (isCacheValid && productsCache.data) {
+      console.log("Get products list from the cache...");
+      res.writeHead(productsCache.statusCode, productsCache.headers);
+      return res.end(productsCache.data);
+    }
+  }
 
   const forwardOptions = {
     method: req.method,
@@ -56,9 +82,31 @@ const server = http.createServer((req, res) => {
   delete forwardOptions.headers.host;
 
   const proxyReq = http.request(targetUrl, forwardOptions, (proxyRes) => {
-    res.writeHead(proxyRes.statusCode, proxyRes.headers);
+    if (isGetProducts && proxyRes.statusCode === 200) {
+      let bodyChunks = [];
 
-    proxyRes.pipe(res);
+      proxyRes.on("data", (chunk) => {
+        bodyChunks.push(chunk);
+      });
+
+      proxyRes.on("end", () => {
+        const completeBody = Buffer.concat(bodyChunks);
+
+        productsCache = {
+          data: completeBody,
+          headers: proxyRes.headers,
+          statusCode: proxyRes.statusCode,
+          updatedAt: Date.now(),
+        };
+
+        console.log("BFF Cache filled with fresh product list.");
+        res.writeHead(proxyRes.statusCode, proxyRes.headers);
+        res.end(completeBody);
+      });
+    } else {
+      res.writeHead(proxyRes.statusCode, proxyRes.headers);
+      proxyRes.pipe(res);
+    }
   });
 
   proxyReq.on("error", (err) => {
