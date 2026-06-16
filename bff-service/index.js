@@ -4,7 +4,7 @@ require("dotenv").config();
 const PORT = process.env.PORT || 3000;
 
 const server = http.createServer((req, res) => {
-  res.setHeader("Acces-Control-Allow-Origin", "*");
+  res.setHeader("Access-Control-Allow-Origin", "*");
   res.setHeader(
     "Access-Control-Allow-Methods",
     "GET, POST, PUT, DELETE, OPTIONS",
@@ -16,29 +16,46 @@ const server = http.createServer((req, res) => {
     return res.end();
   }
 
-  const urlParts = req.url.split("/").filter(Boolean);
-  const recipientServiceName = urlParts[0]
-    ? urlParts[0].split("?")[0].toLowerCase()
-    : null;
+  const pathParts = req.url.split("?")[0].split("/").filter(Boolean);
+  console.log("bff service, pathParts", pathParts);
 
-  const targetServiceBaseUrl = process.env[recipientServiceName.toUpperCase()];
+  const recipientServiceName = pathParts[0] ? pathParts[0].toLowerCase() : null;
+  console.log("bff service, recipientServiceName ", recipientServiceName);
 
-  if (!targetSErviceBaseUrl) {
-    res.writeHead(502, { "content-Type": "text/plain" });
+  if (!recipientServiceName) {
+    res.writeHead(400, { "Content-Type": "text/plain" });
+    return res.end("Cannot process request: service name is missing in path");
+  }
+
+  const targetServiceBaseUrl = process.env[recipientServiceName?.toUpperCase()];
+  console.log("bff service, targetServiceBaseUrl", targetServiceBaseUrl);
+
+  if (!targetServiceBaseUrl) {
+    res.writeHead(502, { "Content-Type": "text/plain" });
     return res.end("Cannot process request");
   }
 
-  const downstreamPath = req.url.clice(recipientServiceName.length + 1) || "/";
-  const targetUrl = `${targetServiceBaseUrl}${downstreamPath}`;
+  const serviceNameIndex = req.url.indexOf(recipientServiceName);
+  let downstreamPath =
+    req.url.slice(serviceNameIndex + recipientServiceName.length) || "/";
+  console.log("bff service, downstreamPath ", downstreamPath);
 
-  const forwardOption = {
+  if (!downstreamPath.startsWith("/") && !downstreamPath.startsWith("?")) {
+    downstreamPath = "/" + downstreamPath;
+  }
+
+  if (downstreamPath === "/") downstreamPath = "";
+  const targetUrl = `${targetServiceBaseUrl}${downstreamPath}`;
+  console.log("bff service, targetUrl ", targetUrl);
+
+  const forwardOptions = {
     method: req.method,
     headers: { ...req.headers },
   };
 
   delete forwardOptions.headers.host;
 
-  const proxyReq = http.request(targetUrl, forwartOptions, (proxyRes) => {
+  const proxyReq = http.request(targetUrl, forwardOptions, (proxyRes) => {
     res.writeHead(proxyRes.statusCode, proxyRes.headers);
 
     proxyRes.pipe(res);
